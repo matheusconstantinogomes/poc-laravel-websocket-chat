@@ -11,36 +11,28 @@ class WebSocketServer implements MessageComponentInterface
 
     public function __construct()
     {
-        $this->clients = new \SplObjectStorage;
+        $this->clients = new \SplObjectStorage();
     }
 
-    public function onOpen(ConnectionInterface $connection)
+    public function onOpen(ConnectionInterface $conn)
     {
-        $this->clients->attach($connection);
-        echo "Nova conexão: {$connection->resourceId}\n";
+        $this->clients->attach($conn);
     }
 
-    public function onMessage(ConnectionInterface $from, $message)
+    public function onClose(ConnectionInterface $conn)
     {
-        $numRecv = count($this->clients) - 1;
-        echo sprintf('Enviada por #%d: %s' . "\n", $from->resourceId, $message);
-    
+        $this->clients->detach($conn);
+    }
+
+    public function onError(ConnectionInterface $conn, \Exception $e)
+    {
+        $conn->close();
+    }
+
+    public function onMessage(ConnectionInterface $from, $msg)
+    {
         foreach ($this->clients as $client) {
-            if ($from !== $client) {
-                $client->send($message);
-            }
+            $client->send($msg);
         }
-    }
-
-    public function onClose(ConnectionInterface $connection)
-    {
-        $this->clients->detach($connection);
-        echo "Conexão {$connection->resourceId} foi desconectada\n";
-    }
-
-    public function onError(ConnectionInterface $connection, \Exception $e)
-    {
-        echo "Ocorreu um erro: {$e->getMessage()}\n";
-        $connection->close();
     }
 }
